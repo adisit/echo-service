@@ -1,0 +1,60 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    io.kompose.service: echo_service
+  name: echo_service
+spec:
+  ports:
+    - name: "9999"
+      port: 9999
+      targetPort: 9999
+  selector:
+    io.kompose.service: echo_service
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: echo_service
+  name: echo_service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: echo_service
+  template:
+    metadata:
+      labels:
+        io.kompose.network/echo-server-default: "true"
+        io.kompose.service: echo_service
+    spec:
+      containers:
+        - env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  key: PORT
+                  name: env
+            - name: URL_BIG_IP
+              valueFrom:
+                configMapKeyRef:
+                  key: URL_BIG_IP
+                  name: env
+          image: echo_server:latest
+          name: echo_service
+          ports:
+            - containerPort: 9999
+              protocol: TCP
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: env
+data:
+  URL_BIG_IP: https://bigip-01.example.com
+  PORT: "9999"
